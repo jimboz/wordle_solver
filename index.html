@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Solver</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121213;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #818384;
+            font-size: 1.1rem;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .controls label {
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .controls input {
+            padding: 8px 12px;
+            border: 2px solid #3a3a3c;
+            border-radius: 4px;
+            background-color: #121213;
+            color: #ffffff;
+            font-size: 16px;
+            width: 80px;
+            text-align: center;
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background-color: #538d4e;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .controls button:hover {
+            background-color: #6aaa64;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+
+        .tile {
+            width: 62px;
+            height: 62px;
+            border: 2px solid #3a3a3c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .tile.empty {
+            background-color: #121213;
+            color: #ffffff;
+        }
+
+        .tile.correct {
+            background-color: #538d4e;
+            border-color: #538d4e;
+            color: #ffffff;
+        }
+
+        .tile.present {
+            background-color: #b59f3b;
+            border-color: #b59f3b;
+            color: #ffffff;
+        }
+
+        .tile.absent {
+            background-color: #3a3a3c;
+            border-color: #3a3a3c;
+            color: #ffffff;
+        }
+
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+
+        .keyboard-row {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        .key {
+            min-width: 43px;
+            height: 58px;
+            border: none;
+            border-radius: 4px;
+            background-color: #818384;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            transition: background-color 0.1s ease;
+        }
+
+        .key:hover {
+            background-color: #9a9a9c;
+        }
+
+        .key.wide {
+            min-width: 65px;
+        }
+
+        .results {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .results h3 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .word-list {
+            background-color: #1e1e1f;
+            border: 2px solid #3a3a3c;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .word-item {
+            background-color: #3a3a3c;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        .word-count {
+            text-align: center;
+            color: #818384;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Wordle Solver</h1>
+        <p>Enter your guesses and get possible solutions</p>
+    </div>
+
+    <div class="game-container">
+        <div class="controls">
+            <label for="maxTurns">Max Turns:</label>
+            <input type="number" id="maxTurns" value="6" min="1" max="6">
+            <button onclick="startGame()">Start Game</button>
+            <button onclick="solveCurrentRow()">Solve</button>
+        </div>
+
+        <div class="grid" id="gameGrid">
+            <!-- Grid will be generated by JavaScript -->
+        </div>
+
+        <div class="keyboard">
+            <div class="keyboard-row">
+                <button class="key" onclick="inputLetter('Q')">Q</button>
+                <button class="key" onclick="inputLetter('W')">W</button>
+                <button class="key" onclick="inputLetter('E')">E</button>
+                <button class="key" onclick="inputLetter('R')">R</button>
+                <button class="key" onclick="inputLetter('T')">T</button>
+                <button class="key" onclick="inputLetter('Y')">Y</button>
+                <button class="key" onclick="inputLetter('U')">U</button>
+                <button class="key" onclick="inputLetter('I')">I</button>
+                <button class="key" onclick="inputLetter('O')">O</button>
+                <button class="key" onclick="inputLetter('P')">P</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key" onclick="inputLetter('A')">A</button>
+                <button class="key" onclick="inputLetter('S')">S</button>
+                <button class="key" onclick="inputLetter('D')">D</button>
+                <button class="key" onclick="inputLetter('F')">F</button>
+                <button class="key" onclick="inputLetter('G')">G</button>
+                <button class="key" onclick="inputLetter('H')">H</button>
+                <button class="key" onclick="inputLetter('J')">J</button>
+                <button class="key" onclick="inputLetter('K')">K</button>
+                <button class="key" onclick="inputLetter('L')">L</button>
+            </div>
+            <div class="keyboard-row">
+                <button class="key wide" onclick="clearRow()">Clear</button>
+                <button class="key" onclick="inputLetter('Z')">Z</button>
+                <button class="key" onclick="inputLetter('X')">X</button>
+                <button class="key" onclick="inputLetter('C')">C</button>
+                <button class="key" onclick="inputLetter('V')">V</button>
+                <button class="key" onclick="inputLetter('B')">B</button>
+                <button class="key" onclick="inputLetter('N')">N</button>
+                <button class="key" onclick="inputLetter('M')">M</button>
+                <button class="key wide" onclick="deleteLetter()">⌫</button>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <h3>Possible Solutions</h3>
+            <div class="word-count" id="wordCount">Enter your guess to see solutions</div>
+            <div class="word-list">
+                <div class="word-grid" id="wordGrid">
+                    <!-- Solutions will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dictionary data - converted from Python
+        let dictionary = [];
+        let gameState = {
+            maxTurns: 6,
+            currentRow: 0,
+            currentTile: 0,
+            constraints: []
+        };
+
+        // Load dictionary from the en_GB.dic file content
+        async function loadDictionary() {
+            try {
+                const response = await fetch('en_GB.dic');
+                const text = await response.text();
+                const lines = text.split('\n');
+                
+                dictionary = lines
+                    .map(line => line.trim().split('/')[0])
+                    .filter(word => word.length === 5 && /^[a-z]+$/.test(word));
+                
+                console.log(`Loaded ${dictionary.length} words`);
+            } catch (error) {
+                // Fallback dictionary if file loading fails
+                console.warn('Could not load dictionary file, using fallback');
+                dictionary = ['about', 'above', 'abuse', 'actor', 'acute', 'admit', 'adopt', 'adult', 'after', 'again', 'agent', 'agree', 'ahead', 'alarm', 'album', 'alert', 'alien', 'align', 'alike', 'alive', 'allow', 'alone', 'along', 'alter', 'among', 'anger', 'angle', 'angry', 'apart', 'apple', 'apply', 'arena', 'argue', 'arise', 'array', 'aside', 'asset', 'avoid', 'awake', 'award', 'aware', 'badly', 'baker', 'bases', 'basic', 'beach', 'began', 'begin', 'being', 'below', 'bench', 'billy', 'birth', 'black', 'blame', 'blind', 'block', 'blood', 'board', 'boost', 'booth', 'bound', 'brain', 'brand', 'brass', 'brave', 'bread', 'break', 'breed', 'brief', 'bring', 'broad', 'broke', 'brown', 'build', 'built', 'buyer', 'cable', 'calif', 'carry', 'catch', 'cause', 'chain', 'chair', 'chaos', 'charm', 'chart', 'chase', 'cheap', 'check', 'chest', 'chief', 'child', 'china', 'chose', 'civic', 'civil', 'claim', 'class', 'clean', 'clear', 'click', 'climb', 'clock', 'close', 'cloud', 'coach', 'coast', 'could', 'count', 'court', 'cover', 'craft', 'crash', 'crazy', 'cream', 'crime', 'cross', 'crowd', 'crown', 'crude', 'curve', 'cycle', 'daily', 'dance', 'dated', 'dealt', 'death', 'debut', 'delay', 'depth', 'doing', 'doubt', 'dozen', 'draft', 'drama', 'drank', 'dream', 'dress', 'drill', 'drink', 'drive', 'drove', 'dying', 'eager', 'early', 'earth', 'eight', 'elite', 'empty', 'enemy', 'enjoy', 'enter', 'entry', 'equal', 'error', 'event', 'every', 'exact', 'exist', 'extra', 'faith', 'false', 'fault', 'fiber', 'field', 'fifth', 'fifty', 'fight', 'final', 'first', 'fixed', 'flash', 'fleet', 'floor', 'fluid', 'focus', 'force', 'forth', 'forty', 'forum', 'found', 'frame', 'frank', 'fraud', 'fresh', 'front', 'fruit', 'fully', 'funny', 'giant', 'given', 'glass', 'globe', 'going', 'grace', 'grade', 'grand', 'grant', 'grass', 'grave', 'great', 'green', 'gross', 'group', 'grown', 'guard', 'guess', 'guest', 'guide', 'happy', 'harry', 'heart', 'heavy', 'hence', 'henry', 'horse', 'hotel', 'house', 'human', 'ideal', 'image', 'index', 'inner', 'input', 'issue', 'japan', 'jimmy', 'joint', 'jones', 'judge', 'known', 'label', 'large', 'laser', 'later', 'laugh', 'layer', 'learn', 'lease', 'least', 'leave', 'legal', 'level', 'lewis', 'light', 'limit', 'links', 'lives', 'local', 'loose', 'lower', 'lucky', 'lunch', 'lying', 'magic', 'major', 'maker', 'march', 'maria', 'match', 'maybe', 'mayor', 'meant', 'media', 'metal', 'might', 'minor', 'minus', 'mixed', 'model', 'money', 'month', 'moral', 'motor', 'mount', 'mouse', 'mouth', 'moved', 'movie', 'music', 'needs', 'never', 'newly', 'night', 'noise', 'north', 'noted', 'novel', 'nurse', 'occur', 'ocean', 'offer', 'often', 'order', 'other', 'ought', 'paint', 'panel', 'paper', 'party', 'peace', 'peter', 'phase', 'phone', 'photo', 'piano', 'piece', 'pilot', 'pitch', 'place', 'plain', 'plane', 'plant', 'plate', 'point', 'pound', 'power', 'press', 'price', 'pride', 'prime', 'print', 'prior', 'prize', 'proof', 'proud', 'prove', 'queen', 'quick', 'quiet', 'quite', 'radio', 'raise', 'range', 'rapid', 'ratio', 'reach', 'ready', 'realm', 'rebel', 'refer', 'relax', 'repay', 'reply', 'right', 'rigid', 'rival', 'river', 'robin', 'roger', 'roman', 'rough', 'round', 'route', 'royal', 'rural', 'scale', 'scene', 'scope', 'score', 'sense', 'serve', 'seven', 'shall', 'shape', 'share', 'sharp', 'sheet', 'shelf', 'shell', 'shift', 'shine', 'shirt', 'shock', 'shoot', 'short', 'shown', 'sight', 'simon', 'sixth', 'sixty', 'sized', 'skill', 'sleep', 'slide', 'small', 'smart', 'smile', 'smith', 'smoke', 'snake', 'snow', 'solid', 'solve', 'sorry', 'sound', 'south', 'space', 'spare', 'speak', 'speed', 'spend', 'spent', 'split', 'spoke', 'sport', 'staff', 'stage', 'stake', 'stand', 'start', 'state', 'steam', 'steel', 'steep', 'steer', 'steve', 'stick', 'still', 'stock', 'stone', 'stood', 'store', 'storm', 'story', 'strip', 'stuck', 'study', 'stuff', 'style', 'sugar', 'suite', 'super', 'sweet', 'table', 'taken', 'taste', 'taxes', 'teach', 'teams', 'teeth', 'terry', 'texas', 'thank', 'theft', 'their', 'theme', 'there', 'these', 'thick', 'thing', 'think', 'third', 'those', 'three', 'threw', 'throw', 'thumb', 'tiger', 'tight', 'timer', 'tired', 'title', 'today', 'topic', 'total', 'touch', 'tough', 'tower', 'track', 'trade', 'train', 'treat', 'trend', 'trial', 'tribe', 'trick', 'tried', 'tries', 'truck', 'truly', 'trunk', 'trust', 'truth', 'twice', 'twist', 'tyler', 'ultra', 'uncle', 'under', 'undue', 'union', 'unity', 'until', 'upper', 'upset', 'urban', 'usage', 'usual', 'valid', 'value', 'video', 'virus', 'visit', 'vital', 'vocal', 'voice', 'waste', 'watch', 'water', 'wheel', 'where', 'which', 'while', 'white', 'whole', 'whose', 'woman', 'women', 'world', 'worry', 'worse', 'worst', 'worth', 'would', 'write', 'wrong', 'wrote', 'young', 'youth'];
+            }
+        }
+
+        // Initialize game
+        function startGame() {
+            gameState.maxTurns = parseInt(document.getElementById('maxTurns').value);
+            gameState.currentRow = 0;
+            gameState.currentTile = 0;
+            gameState.constraints = [];
+            createGrid();
+            updateResults([]);
+        }
+
+        // Create the game grid
+        function createGrid() {
+            const grid = document.getElementById('gameGrid');
+            grid.innerHTML = '';
+            
+            for (let row = 0; row < gameState.maxTurns; row++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
+                
+                for (let col = 0; col < 5; col++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile empty';
+                    tile.id = `tile-${row}-${col}`;
+                    tile.onclick = () => cycleTileState(row, col);
+                    rowDiv.appendChild(tile);
+                }
+                
+                grid.appendChild(rowDiv);
+            }
+        }
+
+        // Handle keyboard input
+        function inputLetter(letter) {
+            if (gameState.currentTile < 5) {
+                const tile = document.getElementById(`tile-${gameState.currentRow}-${gameState.currentTile}`);
+                tile.textContent = letter;
+                tile.className = 'tile empty';
+                gameState.currentTile++;
+            }
+        }
+
+        // Delete last letter
+        function deleteLetter() {
+            if (gameState.currentTile > 0) {
+                gameState.currentTile--;
+                const tile = document.getElementById(`tile-${gameState.currentRow}-${gameState.currentTile}`);
+                tile.textContent = '';
+                tile.className = 'tile empty';
+            }
+        }
+
+        // Clear current row
+        function clearRow() {
+            for (let i = 0; i < 5; i++) {
+                const tile = document.getElementById(`tile-${gameState.currentRow}-${i}`);
+                tile.textContent = '';
+                tile.className = 'tile empty';
+            }
+            gameState.currentTile = 0;
+        }
+
+        // Cycle tile state (empty -> correct -> present -> absent)
+        function cycleTileState(row, col) {
+            const tile = document.getElementById(`tile-${row}-${col}`);
+            if (!tile.textContent) return;
+            
+            if (tile.classList.contains('empty')) {
+                tile.className = 'tile correct';
+            } else if (tile.classList.contains('correct')) {
+                tile.className = 'tile present';
+            } else if (tile.classList.contains('present')) {
+                tile.className = 'tile absent';
+            } else {
+                tile.className = 'tile empty';
+            }
+        }
+
+        // Solve current row
+        function solveCurrentRow() {
+            const constraints = [];
+            
+            // Get constraints from current row
+            for (let col = 0; col < 5; col++) {
+                const tile = document.getElementById(`tile-${gameState.currentRow}-${col}`);
+                const letter = tile.textContent.toLowerCase();
+                
+                if (!letter) continue;
+                
+                if (tile.classList.contains('correct')) {
+                    constraints.push([letter, col, 0]); // exact match
+                } else if (tile.classList.contains('present')) {
+                    constraints.push([letter, col, 1]); // similar match
+                } else if (tile.classList.contains('absent')) {
+                    constraints.push([letter, -1, 2]); // absent
+                }
+            }
+            
+            // Add constraints to game state
+            gameState.constraints = gameState.constraints.concat(constraints);
+            
+            // Find solutions
+            const solutions = findSolutions(dictionary, gameState.constraints);
+            updateResults(solutions);
+            
+            // Move to next row if not at the end
+            if (gameState.currentRow < gameState.maxTurns - 1) {
+                gameState.currentRow++;
+                gameState.currentTile = 0;
+            }
+        }
+
+        // Port of Python solver logic
+        function findWordsWith(text, ch) {
+            const positions = [];
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === ch) {
+                    positions.push(i);
+                }
+            }
+            return positions;
+        }
+
+        function findExact(textList, ch, pos) {
+            return textList.filter(text => {
+                const positions = findWordsWith(text, ch);
+                return positions.includes(pos);
+            });
+        }
+
+        function findSimilar(textList, ch, pos) {
+            return textList.filter(text => {
+                const positions = findWordsWith(text, ch);
+                if (positions.length === 0) return false;
+                
+                // If the letter is at the specified position, remove that occurrence
+                const filteredPositions = positions.filter(p => p !== pos);
+                return filteredPositions.length > 0;
+            });
+        }
+
+        function findNoMatch(textList, ch) {
+            return textList.filter(text => !text.includes(ch));
+        }
+
+        function findSolutions(wordList, constraintList) {
+            let shortlist = [...wordList];
+            
+            for (const [ch, pos, mode] of constraintList) {
+                if (mode === 0) {
+                    shortlist = findExact(shortlist, ch, pos);
+                } else if (mode === 1) {
+                    shortlist = findSimilar(shortlist, ch, pos);
+                } else if (mode === 2) {
+                    shortlist = findNoMatch(shortlist, ch);
+                }
+            }
+            
+            return shortlist;
+        }
+
+        // Update results display
+        function updateResults(words) {
+            const wordGrid = document.getElementById('wordGrid');
+            const wordCount = document.getElementById('wordCount');
+            
+            wordCount.textContent = `${words.length} possible solutions`;
+            wordGrid.innerHTML = '';
+            
+            if (words.length === 0) {
+                wordGrid.innerHTML = '<div style="text-align: center; color: #818384; grid-column: 1 / -1;">No solutions found</div>';
+                return;
+            }
+            
+            words.forEach(word => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'word-item';
+                wordElement.textContent = word;
+                wordGrid.appendChild(wordElement);
+            });
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDictionary();
+            startGame();
+        });
+
+        // Keyboard support
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= 'a' && e.key <= 'z') {
+                inputLetter(e.key.toUpperCase());
+            } else if (e.key >= 'A' && e.key <= 'Z') {
+                inputLetter(e.key);
+            } else if (e.key === 'Backspace') {
+                deleteLetter();
+            } else if (e.key === 'Enter') {
+                solveCurrentRow();
+            }
+        });
+    </script>
+</body>
+</html>
